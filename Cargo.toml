@@ -7,6 +7,7 @@ edition = "2024"
 mime = "0.3.17"
 axum = "0.8.3"
 tracing = "0.1.41"
+askama = "0.14.0"
 
 [dependencies.tokio]
 version =  "1.44.2"
