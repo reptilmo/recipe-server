@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 mime = "0.3.17"
 axum = "0.8.3"
+tracing = "0.1.41"
 
 [dependencies.tokio]
 version =  "1.44.2"
@@ -14,3 +15,7 @@ features =  ["full"]
 [dependencies.tower-http]
 version = "0.6.2"
 features = ["fs", "trace"]
+
+[dependencies.tracing-subscriber]
+version = "0.3.19"
+features = ["env-filter"]
