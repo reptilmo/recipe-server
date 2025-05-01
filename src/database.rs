@@ -89,6 +89,7 @@ pub async fn init_database(
                     continue 'next_recipe;
                 }
             }
+            tx.commit().await?;
         }
     }
 
