@@ -1,23 +1,41 @@
+mod database;
+mod error;
 mod recipe;
 mod templates;
 
+use crate::database::*;
 use crate::recipe::get_recipe;
 use crate::templates::IndexTemplate;
 
 use axum::{self, response, routing};
+use clap::Parser;
 use tokio::net;
 use tower_http::{services, trace};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const DEFAULT_BIND_ADDR: &str = "127.0.0.1:8888";
 
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long, name = "bind-addr")]
+    bind_addr: Option<String>,
+    #[arg(short, long, name = "init-from")]
+    init_from: Option<std::path::PathBuf>,
+    #[arg(short, long, name = "db-uri")]
+    db_uri: Option<String>,
+}
+
 async fn response_recipe() -> response::Html<String> {
     let recipe = IndexTemplate::recipe(get_recipe());
     response::Html(recipe.to_string())
 }
 
-async fn serve() -> Result<(), Box<dyn std::error::Error>> {
+async fn serve(bind_addr: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
     let mime_favicon = "image/vnd.microsoft.icon".parse().unwrap();
+    let addr = match bind_addr {
+        Some(addr) => addr,
+        None => DEFAULT_BIND_ADDR.to_string(),
+    };
 
     // tracing registry and layer
     tracing_subscriber::registry()
@@ -45,19 +63,22 @@ async fn serve() -> Result<(), Box<dyn std::error::Error>> {
         )
         .layer(trace_layer);
 
-    println!(
-        "recipe-service is listening on \x1b[91m{}\x1b[0m",
-        DEFAULT_BIND_ADDR
-    );
+    println!("recipe-service is listening on \x1b[91m{}\x1b[0m", addr);
 
-    let listener = net::TcpListener::bind(DEFAULT_BIND_ADDR).await?;
+    let listener = net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
-    if let Err(err) = serve().await {
+    let args = Args::parse();
+    let db_uri = get_database_uri(args.db_uri.as_deref());
+    if let Err(err) = init_database(args.init_from, &db_uri).await {
+        eprintln!("recipe-server error: {}", err);
+        std::process::exit(1);
+    }
+    if let Err(err) = serve(args.bind_addr).await {
         eprintln!("recipe-server error: {}", err);
         std::process::exit(1);
     }
