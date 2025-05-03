@@ -133,6 +133,23 @@ pub async fn fetch_recipe(db: &SqlitePool) -> Result<Recipe, RecipeServerError> 
         }
     }
 
+    let mut sql_tags =
+        sqlx::query_scalar!("SELECT tag FROM tags WHERE recipe_id = $1;", sql_recipe.id).fetch(db);
+    let mut tags: Vec<String> = Vec::new();
+    while let Some(tag) = sql_tags.next().await {
+        match tag {
+            Ok(tag) => tags.push(tag),
+            Err(e) => {
+                log::error!(
+                    "failed to fetch tags: recipe={}, error={}",
+                    sql_recipe.id,
+                    e
+                );
+                return Err(RecipeServerError::SqlxError(e));
+            }
+        }
+    }
+
     Ok(Recipe {
         id: sql_recipe.id as u32,
         name: sql_recipe.name,
@@ -143,6 +160,6 @@ pub async fn fetch_recipe(db: &SqlitePool) -> Result<Recipe, RecipeServerError> 
             .map(|s| s.to_string())
             .collect(),
         source: sql_recipe.source,
-        tags: Vec::new(),
+        tags,
     })
 }

@@ -18,12 +18,19 @@
       {% for step in recipe.preparation %}
         <li>{{step}}</li>
       {% endfor %}
-      </ol>
+      </ol></br>
+      <h3>Source: {{recipe.source}}</h3>
     </span><br/>
   </div>
   <div>
-
+    <p>Tags:</p>
+    <ul class="no-bullets">
+      {% for tag in recipe.tags %}
+        <li>{{tag}}</li>
+      {% endfor %}
+    </ul>
   </div>
+  <br/>
   <form>
     <button type="submit">New Recipe</button>
   </form>

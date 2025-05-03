@@ -6,3 +6,9 @@ h1 {
 .recipe {
   border: 1px solid black;
 }
+
+ul.no-bullets {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
