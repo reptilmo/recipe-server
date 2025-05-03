@@ -13,7 +13,13 @@
       {% endfor %}
       <ul/>
     </span><br/><br/>
-    <span class="recipe_preparation">{{recipe.preparation}}</span><br/>
+    <span class="recipe_preparation">
+      <ol>
+      {% for step in recipe.preparation %}
+        <li>{{step}}</li>
+      {% endfor %}
+      </ol>
+    </span><br/>
   </div>
   <div>
 

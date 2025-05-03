@@ -2,8 +2,9 @@ use crate::error::RecipeServerError;
 use crate::recipe::{Recipe, read_recipes_json};
 
 use sqlx::{SqlitePool, migrate::MigrateDatabase, sqlite};
+use tokio_stream::StreamExt;
 
-pub fn get_database_uri(db_uri: Option<&str>) -> String {
+pub fn get_uri(db_uri: Option<&str>) -> String {
     if let Some(db_uri) = db_uri {
         db_uri.to_string()
     } else if let Ok(db_uri) = std::env::var("RECIPE_SERVER_DB_URI") {
@@ -13,7 +14,7 @@ pub fn get_database_uri(db_uri: Option<&str>) -> String {
     }
 }
 
-fn extract_database_dir(db_uri: &str) -> Result<&str, RecipeServerError> {
+fn extract_dir(db_uri: &str) -> Result<&str, RecipeServerError> {
     if db_uri.starts_with("sqlite://") && db_uri.ends_with(".db") {
         let start = db_uri.find(':').unwrap() + 3;
         let mut path = &db_uri[start..];
@@ -28,12 +29,12 @@ fn extract_database_dir(db_uri: &str) -> Result<&str, RecipeServerError> {
     }
 }
 
-pub async fn init_database(
+pub async fn init(
     init_from: Option<std::path::PathBuf>,
     db_uri: &str,
-) -> Result<(), RecipeServerError> {
+) -> Result<SqlitePool, RecipeServerError> {
     if !sqlite::Sqlite::database_exists(db_uri).await? {
-        let db_dir = extract_database_dir(db_uri)?;
+        let db_dir = extract_dir(db_uri)?;
         std::fs::create_dir_all(db_dir)?;
         sqlite::Sqlite::create_database(db_uri).await?
     }
@@ -45,11 +46,12 @@ pub async fn init_database(
         let recipes = read_recipes_json(path)?;
         'next_recipe: for recipe in recipes {
             let mut tx = db.begin().await?;
+            let prep = recipe.preparation.join("|");
             let insert = sqlx::query!(
                 "INSERT INTO recipes (id, name, preparation, source) VALUES ($1, $2, $3, $4);",
                 recipe.id,
                 recipe.name,
-                recipe.preparation,
+                prep,
                 recipe.source
             )
             .execute(&mut *tx)
@@ -93,9 +95,54 @@ pub async fn init_database(
         }
     }
 
-    Ok(())
+    Ok(db)
 }
 
-pub async fn fetch_recipe(_db: &mut SqlitePool) -> Option<Recipe> {
-    None
+pub async fn fetch_recipe(db: &SqlitePool) -> Result<Recipe, RecipeServerError> {
+    struct SqlRecipe {
+        id: i64,
+        name: String,
+        preparation: String,
+        source: String,
+    }
+
+    let sql_recipe = sqlx::query_as!(
+        SqlRecipe,
+        "SELECT * FROM recipes ORDER BY RANDOM() LIMIT 1;"
+    )
+    .fetch_one(db)
+    .await?;
+
+    let mut sql_ingredients = sqlx::query_scalar!(
+        "SELECT ingredient FROM ingredients WHERE recipe_id = $1;",
+        sql_recipe.id
+    )
+    .fetch(db);
+    let mut ingredients: Vec<String> = Vec::new();
+    while let Some(ingred) = sql_ingredients.next().await {
+        match ingred {
+            Ok(ingredient) => ingredients.push(ingredient),
+            Err(e) => {
+                log::error!(
+                    "failed to fetch ingredients: recipe={}, error={}",
+                    sql_recipe.id,
+                    e
+                );
+                return Err(RecipeServerError::SqlxError(e));
+            }
+        }
+    }
+
+    Ok(Recipe {
+        id: sql_recipe.id as u32,
+        name: sql_recipe.name,
+        ingredients,
+        preparation: sql_recipe
+            .preparation
+            .split("|") //TODO: May be a bad choice of line separating character.
+            .map(|s| s.to_string())
+            .collect(),
+        source: sql_recipe.source,
+        tags: Vec::new(),
+    })
 }
