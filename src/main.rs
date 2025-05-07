@@ -32,7 +32,7 @@ struct AppState {
 
 async fn server_response(State(state): State<Arc<RwLock<AppState>>>) -> response::Html<String> {
     let appstate = state.read().await;
-    let recipe = database::fetch_recipe(&appstate.db).await;
+    let recipe = database::fetch_recipe(&appstate.db, None).await;
 
     match recipe {
         Ok(recipe) => {

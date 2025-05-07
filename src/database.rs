@@ -98,7 +98,10 @@ pub async fn init(
     Ok(db)
 }
 
-pub async fn fetch_recipe(db: &SqlitePool) -> Result<Recipe, RecipeServerError> {
+pub async fn fetch_recipe(
+    db: &SqlitePool,
+    recipe_id: Option<i64>,
+) -> Result<Recipe, RecipeServerError> {
     struct SqlRecipe {
         id: i64,
         name: String,
@@ -106,12 +109,21 @@ pub async fn fetch_recipe(db: &SqlitePool) -> Result<Recipe, RecipeServerError> 
         source: String,
     }
 
-    let sql_recipe = sqlx::query_as!(
-        SqlRecipe,
-        "SELECT * FROM recipes ORDER BY RANDOM() LIMIT 1;"
-    )
-    .fetch_one(db)
-    .await?;
+    let sql_recipe = match recipe_id {
+        Some(id) => {
+            sqlx::query_as!(SqlRecipe, "SELECT * FROM recipes WHERE id = $1;", id)
+                .fetch_one(db)
+                .await?
+        }
+        None => {
+            sqlx::query_as!(
+                SqlRecipe,
+                "SELECT * FROM recipes ORDER BY RANDOM() LIMIT 1;"
+            )
+            .fetch_one(db)
+            .await?
+        }
+    };
 
     let mut sql_ingredients = sqlx::query_scalar!(
         "SELECT ingredient FROM ingredients WHERE recipe_id = $1;",
