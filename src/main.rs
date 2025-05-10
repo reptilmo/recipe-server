@@ -5,8 +5,15 @@ mod templates;
 
 use crate::templates::IndexTemplate;
 
-use axum::{self, extract::State, response, routing};
+use axum::{
+    self,
+    extract::{Query, State},
+    http,
+    response::{self, IntoResponse},
+    routing,
+};
 use clap::Parser;
+use serde::Deserialize;
 use sqlx::SqlitePool;
 use tokio::{net, sync::RwLock};
 use tower_http::{services, trace};
@@ -26,20 +33,46 @@ struct Args {
     db_uri: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct WebQueryParams {
+    id: Option<i64>,
+}
+
 struct AppState {
     db: SqlitePool,
 }
 
-async fn server_response(State(state): State<Arc<RwLock<AppState>>>) -> response::Html<String> {
+async fn web_response(
+    State(state): State<Arc<RwLock<AppState>>>,
+    Query(params): Query<WebQueryParams>,
+) -> Result<response::Response, http::StatusCode> {
     let appstate = state.read().await;
-    let recipe = database::fetch_recipe(&appstate.db, None).await;
+    let recipe_id = match params.id {
+        Some(id) => id,
+        None => {
+            match database::random_recipe_id(&appstate.db).await {
+                Ok(id) => {
+                    let uri = format!("/?id={}", id);
+                    return Ok(response::Redirect::to(&uri).into_response());
+                }
+                Err(_) => {
+                    log::error!("failed to fetch random id");
+                    return Err(http::StatusCode::NO_CONTENT); //TODO:
+                }
+            }
+        }
+    };
 
+    let recipe = database::fetch_recipe(&appstate.db, recipe_id).await;
     match recipe {
         Ok(recipe) => {
             let recipe = IndexTemplate::recipe(recipe);
-            response::Html(recipe.to_string())
+            Ok(response::Html(recipe.to_string()).into_response())
         }
-        Err(_) => response::Html("Internal Error".to_string()), //TODO:
+        Err(_) => {
+            log::error!("failed to fetch recipe, id={}", recipe_id);
+            Err(http::StatusCode::NOT_FOUND)
+        }
     }
 }
 
@@ -69,7 +102,7 @@ async fn serve(
 
     // the server
     let app = axum::Router::new()
-        .route("/", routing::get(server_response))
+        .route("/", routing::get(web_response))
         .route_service(
             "/recipe.css",
             services::ServeFile::new_with_mime("assets/static/recipe.css", &mime::TEXT_CSS_UTF_8),
