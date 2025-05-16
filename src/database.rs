@@ -7,7 +7,7 @@ use tokio_stream::StreamExt;
 pub fn get_uri(db_uri: Option<&str>) -> String {
     if let Some(db_uri) = db_uri {
         db_uri.to_string()
-    } else if let Ok(db_uri) = std::env::var("RECIPE_SERVER_DB_URI") {
+    } else if let Ok(db_uri) = std::env::var("DATABASE_URL") {
         db_uri
     } else {
         "sqlite://db/recipe-server.db".to_string()
@@ -78,10 +78,11 @@ pub async fn init(
             }
 
             for tag in recipe.tags {
+                let tag = tag.to_lowercase();
                 let insert = sqlx::query!(
                     "INSERT INTO tags (recipe_id, tag) VALUES ($1, $2);",
                     recipe.id,
-                    tag
+                    tag,
                 )
                 .execute(&mut *tx)
                 .await;
@@ -102,6 +103,18 @@ pub async fn random_recipe_id(db: &SqlitePool) -> Result<i64, RecipeServerError>
     let recipe_id = sqlx::query_scalar!("SELECT id FROM recipes ORDER BY RANDOM() LIMIT 1;")
         .fetch_one(db)
         .await?;
+    Ok(recipe_id)
+}
+
+pub async fn fetch_recipe_id(db: &SqlitePool, tags: &str) -> Result<i64, RecipeServerError> {
+    // TODO: For some reason this query doesn't return anything when IN list has more than one
+    // tag in it.
+    let recipe_id = sqlx::query_scalar!(
+        "SELECT recipe_id FROM tags WHERE tag IN ($1) LIMIT 1;",
+        tags
+    )
+    .fetch_one(db)
+    .await?;
     Ok(recipe_id)
 }
 

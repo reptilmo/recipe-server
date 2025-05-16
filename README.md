@@ -16,3 +16,8 @@ or
 - Run `cargo sqlx database setup`.
 - Then cargo run -- --init-from=assets/static/recipes.json
 
+## Todo
+Better tag query
+API routes
+More recipes
+Client side app

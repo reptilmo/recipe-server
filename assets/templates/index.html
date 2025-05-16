@@ -4,6 +4,12 @@
     <title>recipe-server</title>
     <link rel="stylesheet" href="{{stylesheet}}">
   </head>
+  <form>
+    <label>Search recipes by tag: </label>
+    <input type="text" name="tags" />
+    <button type="submit">New Recipe</button>
+  </form>
+  <br/>
   <div class="recipe">
     <h1><span class="recipe_name">{{recipe.name}}</span></h1><br/>
     <span class="recipe_ingredients">
@@ -14,7 +20,7 @@
       <ul/>
     </span><br/><br/>
     <span class="recipe_preparation">
-      <ol>
+      <ol class=no-style>
       {% for step in recipe.preparation %}
         <li>{{step}}</li>
       {% endfor %}
@@ -31,8 +37,5 @@
     </ul>
   </div>
   <br/>
-  <form>
-    <button type="submit">New Recipe</button>
-  </form>
   </body>
 </html>

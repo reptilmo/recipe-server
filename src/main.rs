@@ -36,6 +36,7 @@ struct Args {
 #[derive(Deserialize)]
 struct WebQueryParams {
     id: Option<i64>,
+    tags: Option<String>,
 }
 
 struct AppState {
@@ -47,33 +48,61 @@ async fn web_response(
     Query(params): Query<WebQueryParams>,
 ) -> Result<response::Response, http::StatusCode> {
     let appstate = state.read().await;
-    let recipe_id = match params.id {
-        Some(id) => id,
-        None => {
-            match database::random_recipe_id(&appstate.db).await {
-                Ok(id) => {
-                    let uri = format!("/?id={}", id);
-                    return Ok(response::Redirect::to(&uri).into_response());
-                }
-                Err(_) => {
-                    log::error!("failed to fetch random id");
-                    return Err(http::StatusCode::NO_CONTENT); //TODO:
-                }
+
+    // Got a recipe id.
+    if let WebQueryParams { id: Some(id), .. } = params {
+        let result = match database::fetch_recipe(&appstate.db, id).await {
+            Ok(recipe) => {
+                let recipe = IndexTemplate::recipe(recipe);
+                Ok(response::Html(recipe.to_string()).into_response())
+            }
+            Err(e) => {
+                log::error!("failed to fetch recipe, err={}", e);
+                Err(http::StatusCode::NOT_FOUND)
+            }
+        };
+        return result;
+    }
+
+    // Got tag(s).
+    if let WebQueryParams {
+        tags: Some(tags), ..
+    } = params
+    {
+        let mut tags_lower = String::new();
+        for c in tags.chars() {
+            if c == ',' {
+                tags_lower.push_str(", ");
+            } else if c.is_alphabetic() {
+                let cl: String = c.to_lowercase().collect();
+                tags_lower.push_str(&cl);
             }
         }
-    };
+        log::info!("tags={}", tags_lower);
 
-    let recipe = database::fetch_recipe(&appstate.db, recipe_id).await;
-    match recipe {
-        Ok(recipe) => {
-            let recipe = IndexTemplate::recipe(recipe);
-            Ok(response::Html(recipe.to_string()).into_response())
-        }
-        Err(_) => {
-            log::error!("failed to fetch recipe, id={}", recipe_id);
-            Err(http::StatusCode::NOT_FOUND)
-        }
+        match database::fetch_recipe_id(&appstate.db, &tags_lower).await {
+            Ok(id) => {
+                let uri = format!("/?id={}", id);
+                return Ok(response::Redirect::to(&uri).into_response());
+            }
+            Err(e) => {
+                log::warn!("{}", e);
+            }
+        };
     }
+
+    // Got nothing.
+    let result = match database::random_recipe_id(&appstate.db).await {
+        Ok(id) => {
+            let uri = format!("/?id={}", id);
+            Ok(response::Redirect::to(&uri).into_response())
+        }
+        Err(e) => {
+            log::error!("failed to fetch random id, err={}", e);
+            Err(http::StatusCode::NO_CONTENT)
+        }
+    };
+    return result;
 }
 
 async fn serve(
