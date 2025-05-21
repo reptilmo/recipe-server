@@ -17,7 +17,9 @@ or
 - Then cargo run -- --init-from=assets/static/recipes.json
 
 ## Todo
-Better tag query
-API routes
-More recipes
+Fix the mess with tags - dashes and spaces between words are being stripped\
+Better tag query\
+API routes\
+Cors\
+More recipes\
 Client side app

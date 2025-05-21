@@ -1,3 +1,4 @@
+mod api;
 mod database;
 mod error;
 mod recipe;
@@ -129,6 +130,9 @@ async fn serve(
         //.on_request(trace::DefaultOnRequest::new().level(tracing::Level::INFO))
         .on_response(trace::DefaultOnResponse::new().level(tracing::Level::INFO));
 
+    let apis =
+        axum::Router::new().route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id));
+
     // the server
     let app = axum::Router::new()
         .route("/", routing::get(web_response))
@@ -140,6 +144,7 @@ async fn serve(
             "/favicon.ico",
             services::ServeFile::new_with_mime("assets/static/favicon.ico", &mime_favicon),
         )
+        .nest("/api/v1", apis)
         .layer(trace_layer)
         .with_state(state);
 
