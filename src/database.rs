@@ -1,7 +1,7 @@
 use crate::error::RecipeServerError;
 use crate::recipe::{Recipe, read_recipes_json};
 
-use sqlx::{SqlitePool, migrate::MigrateDatabase, sqlite};
+use sqlx::{Row, SqlitePool, migrate::MigrateDatabase, sqlite};
 use tokio_stream::StreamExt;
 
 pub fn get_uri(db_uri: Option<&str>) -> String {
@@ -106,16 +106,24 @@ pub async fn random_recipe_id(db: &SqlitePool) -> Result<i64, RecipeServerError>
     Ok(recipe_id)
 }
 
-pub async fn fetch_recipe_id(db: &SqlitePool, tags: &str) -> Result<i64, RecipeServerError> {
-    // TODO: For some reason this query doesn't return anything when IN list has more than one
-    // tag in it.
-    let recipe_id = sqlx::query_scalar!(
-        "SELECT recipe_id FROM tags WHERE tag IN ($1) LIMIT 1;",
-        tags
-    )
-    .fetch_one(db)
-    .await?;
-    Ok(recipe_id)
+pub async fn fetch_recipe_id(db: &SqlitePool, tags: Vec<String>) -> Result<i64, RecipeServerError> {
+    let mut params = "$1".to_string();
+    for i in 1..tags.len() {
+        params.push_str(&format!(", ${}", i + 1));
+    }
+
+    let query_str = format!(
+        "SELECT DISTINCT recipe_id FROM tags WHERE tag IN ({}) LIMIT 1;",
+        params
+    );
+
+    let mut query = sqlx::query(&query_str);
+    for t in tags {
+        query = query.bind(t);
+    }
+
+    let recipe_id = query.fetch_one(db).await?;
+    Ok(recipe_id.get(0))
 }
 
 pub async fn fetch_recipe(db: &SqlitePool, recipe_id: i64) -> Result<Recipe, RecipeServerError> {

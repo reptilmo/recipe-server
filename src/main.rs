@@ -70,30 +70,25 @@ async fn web_response(
         tags: Some(tags), ..
     } = params
     {
-        let mut tags_lower = String::new();
-        for c in tags.chars() {
-            if c == ',' {
-                tags_lower.push_str(", ");
-            } else if c.is_alphabetic() {
-                let cl: String = c.to_lowercase().collect();
-                tags_lower.push_str(&cl);
-            }
+        if tags.len() > 0 {
+            let tags_vec = tags
+                .split(",")
+                .map(|t| t.to_string().trim_start().to_lowercase())
+                .collect();
+            match database::fetch_recipe_id(&appstate.db, tags_vec).await {
+                Ok(id) => {
+                    let uri = format!("/?id={}", id);
+                    return Ok(response::Redirect::to(&uri).into_response());
+                }
+                Err(e) => {
+                    log::warn!("{}", e);
+                }
+            };
         }
-        log::info!("tags={}", tags_lower);
-
-        match database::fetch_recipe_id(&appstate.db, &tags_lower).await {
-            Ok(id) => {
-                let uri = format!("/?id={}", id);
-                return Ok(response::Redirect::to(&uri).into_response());
-            }
-            Err(e) => {
-                log::warn!("{}", e);
-            }
-        };
     }
 
     // Got nothing.
-    let result = match database::random_recipe_id(&appstate.db).await {
+    match database::random_recipe_id(&appstate.db).await {
         Ok(id) => {
             let uri = format!("/?id={}", id);
             Ok(response::Redirect::to(&uri).into_response())
@@ -102,8 +97,7 @@ async fn web_response(
             log::error!("failed to fetch random id, err={}", e);
             Err(http::StatusCode::NO_CONTENT)
         }
-    };
-    return result;
+    }
 }
 
 async fn serve(
