@@ -70,18 +70,21 @@ async fn web_response(
         tags: Some(tags), ..
     } = params
     {
-        if tags.len() > 0 {
+        if !tags.is_empty() {
             let tags_vec = tags
                 .split(",")
                 .map(|t| t.to_string().trim_start().to_lowercase())
                 .collect();
             match database::fetch_recipe_id(&appstate.db, tags_vec).await {
-                Ok(id) => {
+                Ok(Some(id)) => {
                     let uri = format!("/?id={}", id);
                     return Ok(response::Redirect::to(&uri).into_response());
                 }
+                Ok(None) => {
+                    log::info!("no data for tags={:?}", tags);
+                }
                 Err(e) => {
-                    log::warn!("{}", e);
+                    log::error!("{}", e);
                 }
             };
         }
@@ -124,8 +127,9 @@ async fn serve(
         //.on_request(trace::DefaultOnRequest::new().level(tracing::Level::INFO))
         .on_response(trace::DefaultOnResponse::new().level(tracing::Level::INFO));
 
-    let apis =
-        axum::Router::new().route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id));
+    let apis = axum::Router::new()
+        .route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id))
+        .route("/recipe/with-tags", routing::get(api::get_recipe_by_tag));
 
     // the server
     let app = axum::Router::new()
@@ -142,7 +146,10 @@ async fn serve(
         .layer(trace_layer)
         .with_state(state);
 
-    println!("recipe-service is listening on \x1b[91m{}\x1b[0m", addr);
+    println!(
+        "\x1b[93mrecipe-server\x1b[0m is listening on \x1b[91m{}\x1b[0m",
+        addr
+    );
 
     let listener = net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

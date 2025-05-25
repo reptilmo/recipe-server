@@ -106,7 +106,10 @@ pub async fn random_recipe_id(db: &SqlitePool) -> Result<i64, RecipeServerError>
     Ok(recipe_id)
 }
 
-pub async fn fetch_recipe_id(db: &SqlitePool, tags: Vec<String>) -> Result<i64, RecipeServerError> {
+pub async fn fetch_recipe_id(
+    db: &SqlitePool,
+    tags: Vec<String>,
+) -> Result<Option<i64>, RecipeServerError> {
     let mut params = "$1".to_string();
     for i in 1..tags.len() {
         params.push_str(&format!(", ${}", i + 1));
@@ -122,8 +125,14 @@ pub async fn fetch_recipe_id(db: &SqlitePool, tags: Vec<String>) -> Result<i64, 
         query = query.bind(t);
     }
 
-    let recipe_id = query.fetch_one(db).await?;
-    Ok(recipe_id.get(0))
+    let rows = query.fetch_all(db).await?;
+    let recipe_id = if !rows.is_empty() {
+        Some(rows[0].get(0))
+    } else {
+        None
+    };
+
+    Ok(recipe_id)
 }
 
 pub async fn fetch_recipe(db: &SqlitePool, recipe_id: i64) -> Result<Recipe, RecipeServerError> {
