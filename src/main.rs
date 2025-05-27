@@ -129,7 +129,8 @@ async fn serve(
 
     let apis = axum::Router::new()
         .route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id))
-        .route("/recipe/with-tags", routing::get(api::get_recipe_by_tag));
+        .route("/recipe/with-tags", routing::get(api::get_recipe_by_tag))
+        .route("/recipe/random", routing::get(api::get_recipe_random));
 
     // the server
     let app = axum::Router::new()

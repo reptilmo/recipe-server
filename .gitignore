@@ -1,2 +1,5 @@
 /target
 /db
+testenv/
+test_env/
+test-envt/

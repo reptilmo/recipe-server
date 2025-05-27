@@ -41,3 +41,22 @@ pub async fn get_recipe_by_tag(
         }
     }
 }
+
+pub async fn get_recipe_random(
+    State(state): State<Arc<RwLock<AppState>>>,
+) -> Result<response::Response, http::StatusCode> {
+    let appstate = state.read().await;
+    match database::random_recipe_id(&appstate.db).await {
+        Ok(id) => match database::fetch_recipe(&appstate.db, id).await {
+            Ok(recipe) => Ok(recipe.into_response()),
+            Err(e) => {
+                log::error!("api failed to fetch recipe id={}, err={}", id, e);
+                Err(http::StatusCode::NOT_FOUND)
+            }
+        },
+        Err(e) => {
+            log::error!("api failed to fetch random recipe id, err={}", e);
+            Err(http::StatusCode::NOT_FOUND) // Should this be 500?
+        }
+    }
+}
