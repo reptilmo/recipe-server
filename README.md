@@ -12,7 +12,7 @@ or
 ```
 - `cd` into the repository folder.
 - Install `sqlx-cli`: `cargo install sqlx-cli`.
-- Make sure the directories in `{your path}` exist.
+- Make sure the directories in DATABASE_URL exist.
 - Run `cargo sqlx database setup`.
 - Then cargo run -- --init-from=assets/static/recipes.json
 

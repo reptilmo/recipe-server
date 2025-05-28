@@ -127,6 +127,10 @@ async fn serve(
         //.on_request(trace::DefaultOnRequest::new().level(tracing::Level::INFO))
         .on_response(trace::DefaultOnResponse::new().level(tracing::Level::INFO));
 
+    let cors = tower_http::cors::CorsLayer::new()
+        .allow_methods([http::Method::GET])
+        .allow_origin(tower_http::cors::Any);
+
     let apis = axum::Router::new()
         .route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id))
         .route("/recipe/with-tags", routing::get(api::get_recipe_by_tag))
@@ -144,6 +148,7 @@ async fn serve(
             services::ServeFile::new_with_mime("assets/static/favicon.ico", &mime_favicon),
         )
         .nest("/api/v1", apis)
+        .layer(cors)
         .layer(trace_layer)
         .with_state(state);
 
