@@ -1,5 +1,5 @@
 # recipe-server
-This server uses Tokio, Axum, Askama, Sqlx, Sqlite to serve recipes.
+This server uses Tokio, Axum, Askama, Sqlx, Sqlite, Utoipa to serve recipes.
 
 
 ### Building

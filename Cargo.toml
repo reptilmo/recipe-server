@@ -13,6 +13,8 @@ serde_json = "1.0.140"
 serde = { version = "1.0.219", features = ["derive"] }
 clap =  { version = "4.5.37", features = ["derive"] }
 log = "0.4.27"
+utoipa-axum = "0.2.0"
+utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 
 [dependencies.tokio]
 version =  "1.44.2"
@@ -33,3 +35,7 @@ features = ["env-filter"]
 [dependencies.sqlx]
 version = "0.8.5"
 features = ["runtime-tokio", "sqlite", "derive", "macros", "migrate", "chrono", "json"]
+
+[dependencies.utoipa]
+version = "5.3.1"
+features = ["axum_extras"]

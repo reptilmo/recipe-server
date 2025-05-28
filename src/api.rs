@@ -1,6 +1,32 @@
+use crate::recipe::Recipe;
 use crate::*;
 use axum::extract::{Json, Path};
+use utoipa_axum::routes;
 
+#[derive(OpenApi)]
+#[openapi(
+    tags(
+        (name = "recipe-server", description = "A simple recipe server and API")
+    )
+)]
+pub struct ApiDoc;
+
+pub fn router() -> OpenApiRouter<Arc<RwLock<AppState>>> {
+    OpenApiRouter::new()
+        .routes(routes!(get_recipe_by_id))
+        .routes(routes!(get_recipe_by_tag))
+        .routes(routes!(get_recipe_random))
+}
+
+#[utoipa::path(
+    get,
+    path = "/recipe/{recipe_id}",
+    responses(
+        (status = 200, description = "Fetch a recipe by id", body = [Recipe]),
+        (status = 404, description = "No matching recipe"),
+        (status = 400, description = "User provided bad id"),
+    )
+)]
 pub async fn get_recipe_by_id(
     State(state): State<Arc<RwLock<AppState>>>,
     Path(recipe_id): Path<String>,
@@ -20,6 +46,14 @@ pub async fn get_recipe_by_id(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/recipe/with-tags",
+    responses(
+        (status = 200, description = "Fetch a joke with provided tag(s)", body = [Recipe]),
+        (status = 404, description = "No matching recipe"),
+    )
+)]
 pub async fn get_recipe_by_tag(
     State(state): State<Arc<RwLock<AppState>>>,
     Json(tags): Json<Vec<String>>,
@@ -42,6 +76,14 @@ pub async fn get_recipe_by_tag(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/recipe/random",
+    responses(
+        (status = 200, description = "Fetch a random recipe", body = [Recipe]),
+        (status = 404, description = "The database is empty"),
+    )
+)]
 pub async fn get_recipe_random(
     State(state): State<Arc<RwLock<AppState>>>,
 ) -> Result<response::Response, http::StatusCode> {

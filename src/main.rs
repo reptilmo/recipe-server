@@ -19,6 +19,9 @@ use sqlx::SqlitePool;
 use tokio::{net, sync::RwLock};
 use tower_http::{services, trace};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use utoipa::{OpenApi, ToSchema};
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_redoc::{Redoc, Servable};
 
 use std::sync::Arc;
 
@@ -131,10 +134,11 @@ async fn serve(
         .allow_methods([http::Method::GET])
         .allow_origin(tower_http::cors::Any);
 
-    let apis = axum::Router::new()
-        .route("/recipe/{resipe_id}", routing::get(api::get_recipe_by_id))
-        .route("/recipe/with-tags", routing::get(api::get_recipe_by_tag))
-        .route("/recipe/random", routing::get(api::get_recipe_random));
+    let (api_router, api) = OpenApiRouter::with_openapi(api::ApiDoc::openapi())
+        .nest("/api/v1", api::router())
+        .split_for_parts();
+
+    let redoc_ui = Redoc::with_url("/api/redoc", api);
 
     // the server
     let app = axum::Router::new()
@@ -147,7 +151,8 @@ async fn serve(
             "/favicon.ico",
             services::ServeFile::new_with_mime("assets/static/favicon.ico", &mime_favicon),
         )
-        .nest("/api/v1", apis)
+        .merge(redoc_ui)
+        .merge(api_router)
         .layer(cors)
         .layer(trace_layer)
         .with_state(state);
