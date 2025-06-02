@@ -15,8 +15,7 @@ or
 - Install `sqlx-cli`: `cargo install sqlx-cli`
 - Make sure the directories in DATABASE_URL exist
 - Run `cargo sqlx database setup`.
-- Then cargo run -- --init-from=assets/static/recipes.json
-
+- Then `cargo run -- --init-from=assets/static/recipes.json`
 
 ### Testing
 There is a very simple API test scrip in folder `test`.
@@ -25,6 +24,17 @@ There is a very simple API test scrip in folder `test`.
 - `source testenv\bin\activate` activate the virtual environment
 - `pip3 install requests` install the rewquests package used by `api.py`
 - `python3 api.py` run `api.py`
+
+### Routes
+Following routes are currently implemented.
+Web: \
+/ - supports parameters 'id', 'tags' \
+
+Api: \
+/api/redoc \
+/api/v1/recipe/{recipe_id} \
+/api/v1/recipe/with-tags \
+/api/v1/recipe/random
 
 
 ### Todo
