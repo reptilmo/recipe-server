@@ -26,9 +26,9 @@ There is a very simple API test scrip in folder `test`.
 - `python3 api.py` run `api.py`
 
 ### Routes
-Following routes are currently implemented.
+Following routes are currently implemented. \
 Web: \
-/ - supports parameters 'id', 'tags' \
+/ - supports parameters 'id', 'tags'
 
 Api: \
 /api/redoc \
@@ -38,7 +38,6 @@ Api: \
 
 
 ### Todo
-Utoipa\
 Leptos client side app\
 Add API routes, POST, DELETE\
 Docker\
