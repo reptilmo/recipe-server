@@ -15,6 +15,7 @@ clap =  { version = "4.5.37", features = ["derive"] }
 log = "0.4.27"
 utoipa-axum = "0.2.0"
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
 [dependencies.tokio]
 version =  "1.44.2"

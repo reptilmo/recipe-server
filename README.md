@@ -31,10 +31,12 @@ Web: \
 / - supports parameters 'id', 'tags'
 
 Api: \
-/api/redoc \
-/api/v1/recipe/{recipe_id} \
-/api/v1/recipe/with-tags \
-/api/v1/recipe/random
+/redoc - *OpenAPI Redoc documentation* \
+/swagger-ui - *OpenAPI swagger documentation* \
+
+/api/v1/recipe/{recipe_id} - *Fetch a recipe by ID* \
+/api/v1/recipe/with-tags - *Fetch a recipe using tags* \
+/api/v1/recipe/random - *Fetch a random recipe* \
 
 
 ### Todo

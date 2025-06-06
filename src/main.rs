@@ -22,6 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::{OpenApi, ToSchema};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
 
 use std::sync::Arc;
 
@@ -138,7 +139,8 @@ async fn serve(
         .nest("/api/v1", api::router())
         .split_for_parts();
 
-    let redoc_ui = Redoc::with_url("/api/redoc", api);
+    let redoc_ui = Redoc::with_url("/redoc", api.clone());
+    let swagger_ui = SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api);
 
     // the server
     let app = axum::Router::new()
@@ -152,6 +154,7 @@ async fn serve(
             services::ServeFile::new_with_mime("assets/static/favicon.ico", &mime_favicon),
         )
         .merge(redoc_ui)
+        .merge(swagger_ui)
         .merge(api_router)
         .layer(cors)
         .layer(trace_layer)
