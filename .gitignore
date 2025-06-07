@@ -3,3 +3,5 @@
 testenv/
 test_env/
 test-envt/
+target/
+dist/
