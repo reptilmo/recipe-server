@@ -15,7 +15,8 @@ pub struct Recipe {
 #[function_component]
 fn App() -> Html {
     let recipe = use_state(|| Recipe::default());
-    let onclick = {
+
+    let fetch_random = {
         let recipe = recipe.clone();
         move |_| {
             let recipe = recipe.clone();
@@ -33,11 +34,36 @@ fn App() -> Html {
         }
     };
 
+    let fetch_tagged = {
+        let recipe = recipe.clone();
+        move |_| {
+            let recipe = recipe.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                //let body = vec!["egg".to_string(),"berry".to_string()];
+                let fetched_recipe: Recipe =
+                    http::Request::get("http://127.0.0.1:8888/api/v1/recipe/with-tags")
+                        //.body(body).unwrap() //NOTE: I'm not sure why this doesn't work.
+                        .send()
+                        .await
+                        .unwrap()
+                        .json()
+                        .await
+                        .unwrap();
+                recipe.set(fetched_recipe);
+            });
+        }
+    };
+
     html! {
         <div>
-            <label>{"Search recipes by tag: "}</label>
-            <input type="text" name="tags" />
-            <button {onclick}>{"New Recipe"}</button>
+            <span>
+                <button onclick={fetch_random}>{"Random Recipe"}</button>
+            </span><br/><br/>
+            <span>
+                <label>{"Search recipes by tag: "}</label>
+                <input type="text" name="tags" />
+                <button onclick={fetch_tagged}>{"Find"}</button>
+            </span><br/>
             <h2>{ recipe.name.clone() }</h2>
             <span>
                 <ul>

@@ -83,6 +83,8 @@ version = "0.1.0"
 dependencies = [
  "gloo-net 0.6.0",
  "serde",
+ "serde_json",
+ "wasm-bindgen",
  "wasm-bindgen-futures",
  "yew",
 ]
@@ -1072,6 +1074,8 @@ dependencies = [
  "cfg-if",
  "once_cell",
  "rustversion",
+ "serde",
+ "serde_json",
  "wasm-bindgen-macro",
 ]
 
