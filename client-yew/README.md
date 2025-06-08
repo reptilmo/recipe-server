@@ -16,6 +16,9 @@ Run trunk to serve the client.
     trunk serve
 ```
 
+### Notes
+By default the server listens on port 8888, and the client app is served on port 3111.
+
 ## License
 This project is made available under "MIT License".
 See the file `LICENSE.txt` in this repository.
